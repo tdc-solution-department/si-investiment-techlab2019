@@ -1,0 +1,65 @@
+@startuml
+
+class "顧客" as Customer {
+    name [1]
+    contacts: Contact [0..*]
+}
+
+class "連絡先" as Contact {
+    div: ContactDiv
+    info: String
+}
+
+enum "連絡先種別" as ContactDiv {
+    ADDRESS
+    TEL
+    MAIL
+    SNS
+    LINE
+}
+
+interface "機器" as Equipment {
+    div: EquipmentDiv
+    id: String
+}
+
+class "ガス機器" as GasEquipment {
+    location: String
+}
+
+interface "受付" as Recept {
+    date: Date [0..1]
+    isActive: Boolean [1]
+}
+
+class "ガス機器修理受付" as GasRepaireRecept {
+    equipments: Equipment [0..*]
+}
+
+interface "作業" as Task {
+    id
+}
+
+class "機器修理" as Repaire {}
+
+interface "作業履歴" as History {
+    start: Date
+    end  : Date
+    status: 
+}
+
+class "機器修理履歴" as RepaireHistory {}
+
+Customer -r-  Contact
+Contact  -r-  ContactDiv
+Customer -d-> Recept
+Recept   -r-> Task
+Task     -r-> History
+
+GasRepaireRecept -u-|> Recept
+GasRepaireRecept -u-|> Equipment
+GasEquipment     -u-|> Equipment
+Repaire          -u-|> Task
+RepaireHistory   -u-|> History
+
+@enduml
