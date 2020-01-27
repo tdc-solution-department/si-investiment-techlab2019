@@ -17,13 +17,9 @@ tags:
   externalDocs:
     description: "LINE Developers"
     url: "https://developers.line.biz/ja/reference/messaging-api/"
-- name: "store"
-  description: "Access to Petstore orders"
-- name: "user"
-  description: "Operations about user"
-  externalDocs:
-    description: "Find out more about our store"
-    url: "http://swagger.io"
+- name: "repair"
+  description: "修理受付API"
+
 schemes:
 - "https"
 paths:
@@ -32,8 +28,9 @@ paths:
       tags:
       - "LineWebhook"
       summary: "LINEチャットボットの基本的なWEBHOOK API"
-      description: ""
-      operationId: "addPet"
+      description: |-
+        LINEチャットボット WEBHOOKの実装
+        機器の故障状況の報告を行う。
       consumes:
       - "application/json"
       produces:
@@ -49,21 +46,107 @@ paths:
         200:
           description: "success"
       security:
-      - petstore_auth:
-        - "write:pets"
-        - "read:pets"
+        - line_signature: []
+  /repair/home:
+    get:
+      tags:
+      - "repair"
+      summary: "修理受付ページ"
+      description: |-
+        修理受付ページ画面
+        シングルページアプリケーション
+      produces:
+      - "text/html"
+      responses:
+        200:
+          description: "success"
+  /repair/validateSerialNo:
+    post:
+      tags:
+      - "repair"
+      summary: "シリアル番号検証"
+      description: "シリアル番号をで検索し、機器製品情報を返却する。"
+      consumes:
+      - "application/json"
+      produces:
+      - "application/json"
+      parameters:
+      - in: "body"
+        name: "body"
+        required: true
+        schema:
+          type: "object"
+          required:
+            - "serialNo"
+          properties:
+            serialNo:
+              type: "string"
+      responses:
+        200:
+          description: "success"
+          schema:
+            $ref: "#/definitions/Machine"
+  /repair/reception:
+    post:
+      tags:
+      - "repair"
+      summary: "修理受付"
+      description: "修理を受け付ける"
+      consumes:
+      - "application/json"
+      produces:
+      - "application/json"
+      parameters:
+      - in: "body"
+        name: "body"
+        required: true
+        schema:
+          $ref: "#/definitions/RepairReceptionPost"
+      responses:
+        200:
+          description: "success"
+          schema:
+            type: "object"
+            required:
+              - "receptionId"
+            properties:
+              receptionId:
+                type: "string"
+  /repair/file:
+    post:
+      tags:
+      - "repair"
+      summary: "ファイルアップロード"
+      description: "ファイルアップローダー"
+      consumes:
+      - "multipart/form-data"
+      produces:
+      - "application/json"
+      parameters:
+        - in: "formData"
+          name: "upfile"
+          type: "file"
+          required: true
+          description: "アップロードするファイル"
+      responses:
+        200:
+          description: "success"
+          schema:
+            type: "object"
+            required:
+              - "fileId"
+            properties:
+              fileId:
+                type: "string"
 securityDefinitions:
-  petstore_auth:
-    type: "oauth2"
-    authorizationUrl: "http://petstore.swagger.io/oauth/dialog"
-    flow: "implicit"
-    scopes:
-      write:pets: "modify pets in your account"
-      read:pets: "read your pets"
-  api_key:
+  line_signature:
     type: "apiKey"
-    name: "api_key"
+    name: "X-Line-Signature"
     in: "header"
+    description: |-
+      伝文とチャネルシークレットのハッシュ
+      詳しくはhttps://developers.line.biz/ja/reference/messaging-api/#signature-validation
+
 definitions:
   lineRequest:
     required:
@@ -115,129 +198,68 @@ definitions:
             example: "text"
           text:
             type: "string"
-
-      
-
-
-
-  Order:
-    type: "object"
-    properties:
-      id:
-        type: "integer"
-        format: "int64"
-      petId:
-        type: "integer"
-        format: "int64"
-      quantity:
-        type: "integer"
-        format: "int32"
-      shipDate:
-        type: "string"
-        format: "date-time"
-      status:
-        type: "string"
-        description: "Order Status"
-        enum:
-        - "placed"
-        - "approved"
-        - "delivered"
-      complete:
-        type: "boolean"
-        default: false
-    xml:
-      name: "Order"
-  Category:
-    type: "object"
-    properties:
-      id:
-        type: "integer"
-        format: "int64"
-      name:
-        type: "string"
-    xml:
-      name: "Category"
-  User:
-    type: "object"
-    properties:
-      id:
-        type: "integer"
-        format: "int64"
-      username:
-        type: "string"
-      firstName:
-        type: "string"
-      lastName:
-        type: "string"
-      email:
-        type: "string"
-      password:
-        type: "string"
-      phone:
-        type: "string"
-      userStatus:
-        type: "integer"
-        format: "int32"
-        description: "User Status"
-    xml:
-      name: "User"
-  Tag:
-    type: "object"
-    properties:
-      id:
-        type: "integer"
-        format: "int64"
-      name:
-        type: "string"
-    xml:
-      name: "Tag"
-  Pet:
+  Machine:
     type: "object"
     required:
-    - "name"
-    - "photoUrls"
+      - "productName"
+      - "ManufactureNo"
+      - "productType"
     properties:
-      id:
-        type: "integer"
-        format: "int64"
-      category:
-        $ref: "#/definitions/Category"
-      name:
+      productName:
         type: "string"
-        example: "doggie"
-      photoUrls:
+      ManufactureNo:
+        type: "string"
+      productType:
+        type: "string"
+  RepairReceptionPost:
+    type: "object"
+    required:
+      - "macheneSerialNo"
+      - "receptionType"
+      - "contact"
+      - "detail"
+      - "comment"
+    properties:
+      macheneSerialNo:
+        type: "string"
+      receptionType:
+        type: "string"
+        enum: 
+          - "visit"
+          - "pickup"
+          - "sending"
+          - "other"
+      contact:
+        $ref: "#/definitions/Contact"
+      detail:
+        type: "string"
+      files:
         type: "array"
-        xml:
-          name: "photoUrl"
-          wrapped: true
         items:
           type: "string"
-      tags:
-        type: "array"
-        xml:
-          name: "tag"
-          wrapped: true
-        items:
-          $ref: "#/definitions/Tag"
-      status:
+          description: "ファイルID"
+      comment:
         type: "string"
-        description: "pet status in the store"
-        enum:
-        - "available"
-        - "pending"
-        - "sold"
-    xml:
-      name: "Pet"
-  ApiResponse:
+
+  Contact:
     type: "object"
+    required:
+      - "zipCode"
+      - "address"
+      - "name"
+      - "telNo"
+      - "email1"
+      - "email2"
     properties:
-      code:
-        type: "integer"
-        format: "int32"
-      type:
+      zipCode:
         type: "string"
-      message:
+      address:
         type: "string"
-externalDocs:
-  description: "Find out more about Swagger"
-  url: "http://swagger.io"
+      name:
+        type: "string"
+      telNo:
+        type: "string"
+      email1:
+        type: "string"
+      email2:
+        type: "string"
