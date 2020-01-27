@@ -1,0 +1,265 @@
+swagger: "2.0"
+info:
+  description: "ソリSI投資 技術ラボ "
+  version: "1.0.0"
+  title: "ソリSI投資 技術ラボ"
+  termsOfService: "http://swagger.io/terms/"
+  contact:
+    email: "zenda@tdc.co.jp"
+  license:
+    name: "TODO"
+    url: "http://todo.com"
+host: "todo.co.jp"
+basePath: "/v1"
+tags:
+- name: "LineWebhook"
+  description: "LINEチャットボットの基本的なWEBHOOK API"
+  externalDocs:
+    description: "LINE Developers"
+    url: "https://developers.line.biz/ja/reference/messaging-api/"
+- name: "repair"
+  description: "修理受付API"
+
+schemes:
+- "https"
+paths:
+  /line:
+    post:
+      tags:
+      - "LineWebhook"
+      summary: "LINEチャットボットの基本的なWEBHOOK API"
+      description: |-
+        LINEチャットボット WEBHOOKの実装
+        機器の故障状況の報告を行う。
+      consumes:
+      - "application/json"
+      produces:
+      - "application/json"
+      parameters:
+      - in: "body"
+        name: "body"
+        description: "あくまで一例"
+        required: true
+        schema:
+          $ref: "#/definitions/lineRequest"
+      responses:
+        200:
+          description: "success"
+      security:
+        - line_signature: []
+  /repair/home:
+    get:
+      tags:
+      - "repair"
+      summary: "修理受付ページ"
+      description: |-
+        修理受付ページ画面
+        シングルページアプリケーション
+      produces:
+      - "text/html"
+      responses:
+        200:
+          description: "success"
+  /repair/validateSerialNo:
+    post:
+      tags:
+      - "repair"
+      summary: "シリアル番号検証"
+      description: "シリアル番号をで検索し、機器製品情報を返却する。"
+      consumes:
+      - "application/json"
+      produces:
+      - "application/json"
+      parameters:
+      - in: "body"
+        name: "body"
+        required: true
+        schema:
+          type: "object"
+          required:
+            - "serialNo"
+          properties:
+            serialNo:
+              type: "string"
+      responses:
+        200:
+          description: "success"
+          schema:
+            $ref: "#/definitions/Machine"
+  /repair/reception:
+    post:
+      tags:
+      - "repair"
+      summary: "修理受付"
+      description: "修理を受け付ける"
+      consumes:
+      - "application/json"
+      produces:
+      - "application/json"
+      parameters:
+      - in: "body"
+        name: "body"
+        required: true
+        schema:
+          $ref: "#/definitions/RepairReceptionPost"
+      responses:
+        200:
+          description: "success"
+          schema:
+            type: "object"
+            required:
+              - "receptionId"
+            properties:
+              receptionId:
+                type: "string"
+  /repair/file:
+    post:
+      tags:
+      - "repair"
+      summary: "ファイルアップロード"
+      description: "ファイルアップローダー"
+      consumes:
+      - "multipart/form-data"
+      produces:
+      - "application/json"
+      parameters:
+        - in: "formData"
+          name: "upfile"
+          type: "file"
+          required: true
+          description: "アップロードするファイル"
+      responses:
+        200:
+          description: "success"
+          schema:
+            type: "object"
+            required:
+              - "fileId"
+            properties:
+              fileId:
+                type: "string"
+securityDefinitions:
+  line_signature:
+    type: "apiKey"
+    name: "X-Line-Signature"
+    in: "header"
+    description: |-
+      伝文とチャネルシークレットのハッシュ
+      詳しくはhttps://developers.line.biz/ja/reference/messaging-api/#signature-validation
+
+definitions:
+  lineRequest:
+    required:
+    - "destination"
+    - "events"
+    type: "object"
+    properties: 
+      destination:
+        type: "string"
+      events: 
+        type: "array"
+        items: 
+          $ref: "#/definitions/lineMessageEvent"
+  lineMessageEvent:
+    type: "object"
+    required:
+    - "type"
+    - "mode"
+    properties: 
+      replyToken:
+        type: "string"
+        description: "イベントへの応答に使用するトークン"
+      type:
+        type: "string"
+        example: "message"
+      mode:
+        type: "string"
+        example: "active"
+        description: "チャネルの状態"
+      timestamp:
+        type: "integer"
+        format: "int64"
+        description: "イベントの発生時刻（ミリ秒）"
+      source:
+        type: "object"
+        properties: 
+          type: 
+            type: "string"
+            example: "user"
+          userId:
+            type: "string"
+      message:
+        type: "object"
+        properties: 
+          id: 
+            type: "string"
+          type: 
+            type: "string"
+            example: "text"
+          text:
+            type: "string"
+  Machine:
+    type: "object"
+    required:
+      - "productName"
+      - "ManufactureNo"
+      - "productType"
+    properties:
+      productName:
+        type: "string"
+      ManufactureNo:
+        type: "string"
+      productType:
+        type: "string"
+  RepairReceptionPost:
+    type: "object"
+    required:
+      - "macheneSerialNo"
+      - "receptionType"
+      - "contact"
+      - "detail"
+      - "comment"
+    properties:
+      macheneSerialNo:
+        type: "string"
+      receptionType:
+        type: "string"
+        enum: 
+          - "visit"
+          - "pickup"
+          - "sending"
+          - "other"
+      contact:
+        $ref: "#/definitions/Contact"
+      detail:
+        type: "string"
+      files:
+        type: "array"
+        items:
+          type: "string"
+          description: "ファイルID"
+      comment:
+        type: "string"
+
+  Contact:
+    type: "object"
+    required:
+      - "zipCode"
+      - "address"
+      - "name"
+      - "telNo"
+      - "email1"
+      - "email2"
+    properties:
+      zipCode:
+        type: "string"
+      address:
+        type: "string"
+      name:
+        type: "string"
+      telNo:
+        type: "string"
+      email1:
+        type: "string"
+      email2:
+        type: "string"
